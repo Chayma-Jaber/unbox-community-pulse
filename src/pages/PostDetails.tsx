@@ -50,13 +50,13 @@ const commentsData: CommentProps[] = [
         likes: 3,
         replies: [
           {
-            id: "1-1-1",
+            id: "1-1-1", 
             content: "En fait, j'aimerais en savoir plus sur les réglages pour photographier en faible luminosité.",
             author: {
               name: "Alexandre Chen",
               avatar: "https://i.pravatar.cc/150?img=15"
             },
-            createdAt: new Date(2025, 3, 14, 16, 05),
+            createdAt: new Date(2025, 3, 14, 16, 5), // Removed leading zero
             likes: 1
           }
         ]
