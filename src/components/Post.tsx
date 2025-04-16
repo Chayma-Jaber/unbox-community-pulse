@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { 
@@ -41,6 +42,7 @@ export interface PostProps {
   liked?: boolean;
   saved?: boolean;
   image?: string;
+  expanded?: boolean;
 }
 
 const Post = ({
@@ -53,7 +55,8 @@ const Post = ({
   comments: initialComments,
   liked: initialLiked = false,
   saved: initialSaved = false,
-  image
+  image,
+  expanded = false
 }: PostProps) => {
   const [isLiked, setIsLiked] = useState(initialLiked);
   const [isSaved, setIsSaved] = useState(initialSaved);
@@ -62,12 +65,16 @@ const Post = ({
   const [showCommentForm, setShowCommentForm] = useState(false);
   const [commentText, setCommentText] = useState("");
 
-  const handleLike = () => {
+  const handleLike = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setIsLiked(!isLiked);
     setLikes(isLiked ? likes - 1 : likes + 1);
   };
 
-  const handleSave = () => {
+  const handleSave = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setIsSaved(!isSaved);
   };
 
@@ -86,8 +93,14 @@ const Post = ({
     locale: fr 
   });
 
-  return (
-    <Card className="post-card mb-4 overflow-hidden animate-fade-in">
+  const displayContent = expanded 
+    ? content 
+    : content.length > 300 
+      ? content.substring(0, 300) + '...' 
+      : content;
+
+  const postContent = (
+    <>
       <CardHeader className="pb-3 flex flex-row items-center justify-between">
         <div className="flex items-center space-x-3">
           <Avatar>
@@ -101,16 +114,25 @@ const Post = ({
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={(e) => e.stopPropagation()}
+            >
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsSaved(!isSaved);
+              }}
+            >
               <Bookmark className="mr-2 h-4 w-4" />
               <span>{isSaved ? "Retirer des favoris" : "Ajouter aux favoris"}</span>
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
               <Flag className="mr-2 h-4 w-4" />
               <span>Signaler</span>
             </DropdownMenuItem>
@@ -120,7 +142,16 @@ const Post = ({
       
       <CardContent className="pb-3">
         <h3 className="text-xl font-semibold mb-2">{title}</h3>
-        <p className="text-sm text-foreground/90">{content}</p>
+        <p className="text-sm text-foreground/90 whitespace-pre-line">{displayContent}</p>
+        {!expanded && content.length > 300 && (
+          <Button 
+            variant="link" 
+            className="p-0 h-auto text-sm mt-1"
+            asChild
+          >
+            <Link to={`/post/${id}`}>Lire la suite</Link>
+          </Button>
+        )}
         {image && (
           <div className="mt-3 rounded-md overflow-hidden">
             <img
@@ -153,7 +184,16 @@ const Post = ({
             variant="ghost" 
             size="sm" 
             className="flex items-center space-x-1 px-2"
-            onClick={() => setShowCommentForm(!showCommentForm)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (expanded) {
+                // Scroll to comments section
+                document.querySelector('.comments-section')?.scrollIntoView({ behavior: 'smooth' });
+              } else {
+                setShowCommentForm(!showCommentForm);
+              }
+            }}
           >
             <MessageSquare className="h-4 w-4" />
             <span>{comments > 0 ? comments : ""}</span>
@@ -163,6 +203,12 @@ const Post = ({
             variant="ghost" 
             size="sm" 
             className="flex items-center space-x-1 px-2"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              // Implement share logic
+              navigator.clipboard.writeText(window.location.origin + `/post/${id}`);
+            }}
           >
             <Share2 className="h-4 w-4" />
           </Button>
@@ -184,10 +230,11 @@ const Post = ({
           </div>
         </div>
         
-        {showCommentForm && (
+        {showCommentForm && !expanded && (
           <form 
             onSubmit={handleAddComment}
             className="w-full mt-2 space-y-2"
+            onClick={(e) => e.stopPropagation()}
           >
             <Textarea
               placeholder="Écrivez un commentaire..."
@@ -199,7 +246,10 @@ const Post = ({
               <Button 
                 type="button" 
                 variant="ghost" 
-                onClick={() => setShowCommentForm(false)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowCommentForm(false);
+                }}
                 size="sm"
               >
                 Annuler
@@ -215,7 +265,23 @@ const Post = ({
           </form>
         )}
       </CardFooter>
-    </Card>
+    </>
+  );
+
+  if (expanded) {
+    return (
+      <Card className="post-card mb-4 overflow-hidden animate-fade-in">
+        {postContent}
+      </Card>
+    );
+  }
+
+  return (
+    <Link to={`/post/${id}`} className="block">
+      <Card className="post-card mb-4 overflow-hidden animate-fade-in hover:shadow-md transition-shadow">
+        {postContent}
+      </Card>
+    </Link>
   );
 };
 
